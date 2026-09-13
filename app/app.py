@@ -72,8 +72,12 @@ def main():
         "**Tip**: For drawn characters or short handwritten snippets, choose **line** segmentation."
     )
 
-    # Initialize Pipeline
-    pipeline = OCRPipeline(engine=engine)
+    # Cache Pipeline to prevent reloading weights on every interaction
+    @st.cache_resource
+    def get_pipeline(engine_name: str) -> OCRPipeline:
+        return OCRPipeline(engine=engine_name)
+
+    pipeline = get_pipeline(engine)
 
     # --- Input Mode Selector ---
     tab_canvas, tab_upload = st.tabs(["🖌️ Interactive Canvas", "📁 Upload Image"])
