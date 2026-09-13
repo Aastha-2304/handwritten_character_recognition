@@ -54,7 +54,9 @@ def render_recognition_results(result: PipelineResult, original_image: np.ndarra
 
     with col2:
         st.markdown("**Preprocessed & Cleaned Binary**")
-        st.image(result.cleaned_binary, use_column_width=True, clamp=True)
+        # Invert for human-friendly viewing (black handwriting on white paper)
+        display_binary = 255 - result.cleaned_binary if result.cleaned_binary.ndim == 2 else result.cleaned_binary
+        st.image(display_binary, caption="Binarized (Black ink on white paper)", use_column_width=True)
 
     st.markdown("---")
     st.markdown("### 📝 Recognized Text")

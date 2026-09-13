@@ -34,43 +34,52 @@ def binarize(gray: np.ndarray) -> np.ndarray:
     BLACK background (0). This orientation is what the segmentation
     functions and the CRNN model expect.
     """
-    # Otsu gives a good global threshold for fairly uniform lighting;
-    # adaptive handles uneven lighting/shadows in photographed notes.
-    blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+    # Normalize illumination if uneven
+    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+    enhanced = clahe.apply(gray)
+    blurred = cv2.GaussianBlur(enhanced, (5, 5), 0)
+
+    # Adaptive Gaussian thresholding with tuned block size
+    # A block size of 31-41 is optimal for camera phone handwriting photos
+    block_size = 35
     binary = cv2.adaptiveThreshold(
         blurred,
         255,
         cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
         cv2.THRESH_BINARY_INV,  # ink -> white, background -> black
-        blockSize=25,
-        C=10,
+        blockSize=block_size,
+        C=8,
     )
     return binary
 
 
-def deskew(binary: np.ndarray) -> np.ndarray:
+def deskew(binary: np.ndarray, max_angle: float = 15.0) -> np.ndarray:
     """
     Estimate and correct small rotation angles using the minimum-area
-    bounding box of ink pixels. Handwritten lines are rarely perfectly
-    horizontal; this measurably helps line segmentation accuracy.
+    bounding box of ink pixels. Only corrects subtle slants (< max_angle).
     """
     coords = cv2.findNonZero(binary)
-    if coords is None:
+    if coords is None or len(coords) < 50:
         return binary
 
-    angle = cv2.minAreaRect(coords)[-1]
-    # cv2.minAreaRect angle convention: normalize to [-45, 45]
+    rect = cv2.minAreaRect(coords)
+    angle = rect[-1]
+    # cv2.minAreaRect angle convention normalization:
     if angle < -45:
         angle = 90 + angle
-    if abs(angle) < 0.5:
-        return binary  # not worth correcting
+    elif angle > 45:
+        angle = angle - 90
+
+    # Only deskew if the tilt is minor and within realistic notebook skew range
+    if abs(angle) < 0.8 or abs(angle) > max_angle:
+        return binary  # do not distort large vertical drawings or severe rotations
 
     (h, w) = binary.shape[:2]
     center = (w // 2, h // 2)
     matrix = cv2.getRotationMatrix2D(center, angle, 1.0)
     rotated = cv2.warpAffine(
         binary, matrix, (w, h),
-        flags=cv2.INTER_CUBIC,
+        flags=cv2.INTER_NEAREST,
         borderMode=cv2.BORDER_CONSTANT,
         borderValue=0,
     )
