@@ -21,9 +21,15 @@ import numpy as np
 import streamlit as st
 from PIL import Image
 
-from app.components.canvas import render_drawing_canvas
-from app.components.export import render_export_buttons
-from app.components.visualizer import render_recognition_results
+try:
+    from app.components.canvas import render_drawing_canvas
+    from app.components.export import render_export_buttons
+    from app.components.visualizer import render_recognition_results
+except (ImportError, ModuleNotFoundError):
+    from components.canvas import render_drawing_canvas
+    from components.export import render_export_buttons
+    from components.visualizer import render_recognition_results
+
 from src.inference.pipeline import OCRPipeline
 
 # Streamlit Page Config
