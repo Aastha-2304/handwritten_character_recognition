@@ -37,13 +37,20 @@ class TrOCRWrapper:
                 self.device = "cuda" if torch.cuda.is_available() else "cpu"
 
             logger.info(f"Loading TrOCR model: {self.model_name} on {self.device}...")
-            self.processor = TrOCRProcessor.from_pretrained(self.model_name)
+            try:
+                self.processor = TrOCRProcessor.from_pretrained(self.model_name)
+            except Exception:
+                from transformers import AutoImageProcessor, XLMRobertaTokenizer
+                image_processor = AutoImageProcessor.from_pretrained(self.model_name)
+                tokenizer = XLMRobertaTokenizer.from_pretrained(self.model_name)
+                self.processor = TrOCRProcessor(image_processor=image_processor, tokenizer=tokenizer)
+
             self.model = VisionEncoderDecoderModel.from_pretrained(self.model_name).to(self.device)
             self.model.eval()
             self._is_loaded = True
             logger.info("TrOCR loaded successfully.")
         except Exception as e:
-            logger.warning(f"Could not load TrOCR model ({e}). Using mock/fallback recognizer.")
+            logger.warning(f"Could not load TrOCR model ({e}). Using fallback recognizer.")
             self._is_loaded = False
 
     def predict(self, image: np.ndarray | Image.Image) -> str:
@@ -69,9 +76,17 @@ class TrOCRWrapper:
                 image = np.stack([image] * 3, axis=-1)
             image = Image.fromarray(image)
 
-        pixel_values = self.processor(image, return_tensors="pt").pixel_values.to(self.device)
-        with torch.no_grad():
-            generated_ids = self.model.generate(pixel_values, max_new_tokens=64)
-            generated_text = self.processor.batch_decode(generated_ids, skip_special_tokens=True)[0]
-
-        return generated_text.strip()
+        try:
+            pixel_values = self.processor(image, return_tensors="pt").pixel_values.to(self.device)
+            with torch.no_grad():
+                generated_ids = self.model.generate(
+                    pixel_values,
+                    max_new_tokens=32,
+                    num_beams=1,
+                    do_sample=False,
+                )
+                generated_text = self.processor.batch_decode(generated_ids, skip_special_tokens=True)[0]
+            return generated_text.strip()
+        except Exception as e:
+            logger.warning(f"TrOCR prediction error: {e}")
+            return ""
