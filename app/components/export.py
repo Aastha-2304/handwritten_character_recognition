@@ -47,18 +47,34 @@ def export_as_pdf(result: PipelineResult, title: str = "Handwritten OCR Transcri
     if not HAS_FPDF:
         return b""
 
+    try:
+        from fpdf.enums import XPos, YPos
+        has_enums = True
+    except ImportError:
+        has_enums = False
+
     pdf = FPDF()
     pdf.add_page()
     pdf.set_font("Helvetica", size=16)
-    pdf.cell(200, 10, txt=title, ln=True, align="C")
-    pdf.ln(10)
 
-    pdf.set_font("Helvetica", size=11)
-    for i, line in enumerate(result.lines):
-        line_str = f"Line {i + 1}: {line.text}"
-        # encode for latin-1 safe in basic fpdf
-        safe_str = line_str.encode("latin-1", "replace").decode("latin-1")
-        pdf.multi_cell(0, 8, txt=safe_str)
+    if has_enums:
+        pdf.cell(0, 10, text=title, new_x=XPos.LMARGIN, new_y=YPos.NEXT, align="C")
+        pdf.ln(10)
+        pdf.set_font("Helvetica", size=11)
+        for i, line in enumerate(result.lines):
+            line_str = f"Line {i + 1}: {line.text}"
+            safe_str = line_str.encode("latin-1", "replace").decode("latin-1")
+            pdf.multi_cell(0, 8, text=safe_str, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    else:
+        pdf.cell(0, 10, txt=title, ln=True, align="C")
+        pdf.ln(10)
+        pdf.set_font("Helvetica", size=11)
+        for i, line in enumerate(result.lines):
+            line_str = f"Line {i + 1}: {line.text}"
+            safe_str = line_str.encode("latin-1", "replace").decode("latin-1")
+            pdf.set_x(pdf.l_margin)
+            pdf.multi_cell(pdf.epw, 8, txt=safe_str)
+            pdf.set_x(pdf.l_margin)
 
     buffer = io.BytesIO()
     pdf.output(buffer)
