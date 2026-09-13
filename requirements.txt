@@ -1,0 +1,21 @@
+﻿# --- Core app ---
+streamlit==1.38.0
+streamlit-drawable-canvas==0.9.3
+
+# --- Image processing ---
+opencv-python-headless==4.10.0.84
+Pillow==10.4.0
+numpy==1.26.4
+
+# --- Deep learning (CRNN, custom model) ---
+torch==2.3.1
+torchvision==0.18.1
+
+# --- TrOCR (transformer OCR) ---
+transformers==4.44.2
+sentencepiece==0.2.0
+
+# --- Utilities ---
+python-Levenshtein==0.25.1
+fpdf2==2.7.9
+pandas==2.2.2

@@ -1,0 +1,49 @@
+/* Custom Styling for Handwritten OCR Studio */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+html, body, [class*="css"] {
+    font-family: 'Outfit', sans-serif;
+}
+
+/* Glassmorphism cards */
+.stCard {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(10px);
+    border-radius: 12px;
+    border: 1px solid rgba(108, 92, 231, 0.15);
+    padding: 1.5rem;
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+}
+
+/* Hero title gradient */
+.hero-title {
+    font-size: 2.5rem !important;
+    font-weight: 700 !important;
+    background: linear-gradient(135deg, #6C5CE7 0%, #A29BFE 50%, #FD79A8 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 0.2rem;
+}
+
+.hero-sub {
+    font-size: 1.1rem;
+    color: #636e72;
+    margin-bottom: 2rem;
+}
+
+/* Code & transcription */
+textarea, pre, code {
+    font-family: 'JetBrains Mono', monospace !important;
+}
+
+/* Buttons hover */
+.stButton>button {
+    border-radius: 8px;
+    font-weight: 600;
+    transition: all 0.2s ease-in-out;
+}
+
+.stButton>button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(108, 92, 231, 0.25);
+}
