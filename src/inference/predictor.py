@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Optional
 
 import numpy as np
+import torch
 from PIL import Image
 
 from src.models.crnn import CRNN
@@ -29,20 +30,21 @@ class Predictor:
         self.ctc_decoder = CTCDecoder(charset=CHARSET)
         self.crnn_model = None
         self.trocr = None
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self._init_engine()
 
     def _init_engine(self):
         if self.engine == "trocr":
-            self.trocr = TrOCRWrapper()
+            self.trocr = TrOCRWrapper(device=self.device)
         elif self.engine == "crnn":
             self._load_crnn()
 
     def _load_crnn(self):
         try:
             import torch
-            self.crnn_model = CRNN(img_channel=1, num_classes=self.ctc_decoder.num_classes)
+            self.crnn_model = CRNN(img_channel=1, num_classes=self.ctc_decoder.num_classes).to(self.device)
             if self.checkpoint_path.exists():
-                state_dict = torch.load(self.checkpoint_path, map_location="cpu")
+                state_dict = torch.load(self.checkpoint_path, map_location=self.device)
                 self.crnn_model.load_state_dict(state_dict)
             self.crnn_model.eval()
         except Exception as e:
@@ -55,16 +57,17 @@ class Predictor:
 
         if self.engine == "trocr":
             if self.trocr is None:
-                self.trocr = TrOCRWrapper()
+                self.trocr = TrOCRWrapper(device=self.device)
             return self.trocr.predict(crop)
 
         elif self.engine == "crnn" and self.crnn_model is not None:
             import torch
             padded = resize_and_pad(crop, target_height=IMG_HEIGHT, max_width=IMG_MAX_WIDTH)
-            tensor = to_tensor(padded).unsqueeze(0)  # (1, 1, 32, max_w)
+            tensor = to_tensor(padded).unsqueeze(0).to(self.device)  # (1, 1, 32, max_w)
             with torch.no_grad():
                 logits = self.crnn_model(tensor)
                 decoded = self.ctc_decoder.decode_greedy(logits)
                 return decoded[0] if decoded else ""
 
         return ""
+
